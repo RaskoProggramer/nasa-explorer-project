@@ -1,0 +1,73 @@
+.home-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 30px 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #f0f0f0;
+  background: linear-gradient(180deg, #0b0c2a 0%, #0f1a3a 100%);
+  text-align: center;
+  min-height: 100vh;
+}
+
+/* Title */
+.home-page h2 {
+  font-size: 2rem;
+  color: #f5d742;
+  margin-bottom: 30px;
+  text-shadow: 1px 1px 5px #000;
+}
+
+/* Two-column container */
+.apod-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 30px;
+  flex-wrap: wrap; /* allows wrapping on small screens */
+}
+
+/* Left side: image */
+.apod-left {
+  flex: 1 1 400px; /* grow/shrink, min-width 400px */
+  display: flex;
+  justify-content: center;
+}
+
+.apod-left img {
+  max-width: 100%;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.apod-left img:hover {
+  transform: scale(1.02);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.7);
+}
+
+/* Right side: explanation */
+.apod-right {
+  flex: 1 1 400px;
+  text-align: left;
+}
+
+.apod-right p {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #ddd;
+  background: rgba(0,0,0,0.3);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.5);
+}
+
+/* Responsive: stack columns on small screens */
+@media screen and (max-width: 800px) {
+  .apod-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  .apod-right {
+    text-align: center;
+  }
+}

@@ -1,62 +1,129 @@
 import { useState, useEffect } from "react";
-import { searchImages } from "../api/nasa";
-import { normalizeImage } from "../utils/normalizeData";
-import Card from "../components/Card";
-import Loader from "../components/Loader";
-import EmptyState from "../components/EmptyState";
+import { fetchNeoFeed7Days, searchNeoByName } from "../api/nasa";
+import "../styles/Browse.css";
+
+// Helper to search images from NASA API
+const searchImages = async (query) => {
+  if (!query) return [];
+  try {
+    const res = await fetch(
+      `https://images-api.nasa.gov/search?q=${encodeURIComponent(query)}`
+    );
+    const data = await res.json();
+    return data.collection.items
+      .map((item) => item.links?.[0]?.href)
+      .filter(Boolean);
+  } catch (err) {
+    console.error("NASA Images API error:", err);
+    return [];
+  }
+};
 
 export default function Browse() {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
+  const [neos, setNeos] = useState([]);
+  const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false); // track if user searched
+  const [hasSearched, setHasSearched] = useState(false);
 
-  // Fetch latest results on initial load
+  // Load last 7 days of NEOs on first load
   useEffect(() => {
-    const fetchLatest = async () => {
-      setLoading(true);
-      const res = await searchImages("latest"); // or "mars", or "" depending on API
-      const items = res.collection.items.map(normalizeImage);
-      setResults(items);
-      setLoading(false);
-    };
-    fetchLatest();
+    loadLatest();
   }, []);
 
-  // Handle user search
-  const handleSearch = async () => {
-    setHasSearched(true); // user triggered a search
+  const loadLatest = async () => {
     setLoading(true);
-    const res = await searchImages(query);
-    const items = res.collection.items.map(normalizeImage);
-    setResults(items);
-    setLoading(false);
+    setHasSearched(false);
+    try {
+      const data = await fetchNeoFeed7Days();
+      const flattened = Object.values(data.near_earth_objects).flat();
+      setNeos(flattened);
+      setImages([]); // no images on initial load
+    } catch (err) {
+      console.error(err);
+      setNeos([]);
+      setImages([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!query) return;
+    setLoading(true);
+    setHasSearched(true);
+
+    try {
+      // Search for NEOs
+      const neoResults = await searchNeoByName(query);
+      setNeos(neoResults);
+
+      // Search for NASA images
+      const imageResults = await searchImages(query);
+      setImages(imageResults);
+    } catch (err) {
+      console.error(err);
+      setNeos([]);
+      setImages([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <>
-      <input
-        placeholder="Search NASA images..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
-      <button onClick={handleSearch}>Search</button>
+    <div className="page">
+      <div className="search-bar">
+        <input
+          placeholder="Search asteroid or space term..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <button onClick={handleSearch}>Search</button>
+      </div>
 
-      {loading && <Loader />}
+      {loading && <p>Loading…</p>}
 
-      {/* Show no results only after a search */}
-      {!loading && hasSearched && results.length === 0 && (
-        <EmptyState message="No results found" />
-      )}
-
-      {/* Show latest results or search results */}
-      {!loading && results.length > 0 && (
-        <div className="grid">
-          {results.map((item) => (
-            <Card key={item.id} item={item} />
-          ))}
+      {/* Show NASA images */}
+      {!loading && images.length > 0 && (
+        <div>
+          <h2>NASA Images</h2>
+          <div className="grid">
+            {images.map((img, i) => (
+              <div key={i} className="card">
+                <img
+                  src={img}
+                  alt={query}
+                  style={{ width: "100%", borderRadius: "8px" }}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       )}
-    </>
+
+      {/* Show asteroid results */}
+      {!loading && neos.length > 0 && (
+        <div>
+          <h1>Near-Earth Objects (Search Results)</h1>
+          <div className="grid">
+            {neos.map((neo) => (
+              <div key={neo.id} className="card">
+                <h3>{neo.name}</h3>
+                <p>
+                  Hazardous:{" "}
+                  {neo.is_potentially_hazardous_asteroid ? "Yes" : "No"}
+                </p>
+                <p>Magnitude: {neo.absolute_magnitude_h}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && hasSearched && neos.length === 0 && images.length === 0 && (
+        <p className="empty">No results found</p>
+      )}
+    </div>
   );
 }
